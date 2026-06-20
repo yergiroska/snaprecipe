@@ -40,5 +40,10 @@ yarn-error.*
 /ios
 /android
 
+# Claude Code
+.claude/
+AGENTS.md
+CLAUDE.md
+
 # IDE
 .idea/
