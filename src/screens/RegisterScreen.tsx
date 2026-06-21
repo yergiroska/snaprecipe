@@ -12,27 +12,36 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types/navigation';
 
-type LoginNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
+type RegisterNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 
-export default function LoginScreen() {
-    const navigation = useNavigation<LoginNavigationProp>();
-    const { signIn } = useAuth();
+export default function RegisterScreen() {
+    const navigation = useNavigation<RegisterNavigationProp>();
+    const { signUp } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const handleLogin = async () => {
-        if (!email || !password) {
+    const handleRegister = async () => {
+        if (!email || !password || !confirmPassword) {
             setError('Por favor completa todos los campos');
+            return;
+        }
+        if (password !== confirmPassword) {
+            setError('Las contraseñas no coinciden');
+            return;
+        }
+        if (password.length < 6) {
+            setError('La contraseña debe tener al menos 6 caracteres');
             return;
         }
         setError('');
         setLoading(true);
         try {
-            await signIn(email, password);
+            await signUp(email, password);
         } catch (err) {
-            setError('Email o contraseña incorrectos');
+            setError('No se pudo crear la cuenta. Verifica el email o intenta con otro.');
         } finally {
             setLoading(false);
         }
@@ -40,7 +49,7 @@ export default function LoginScreen() {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>SnapRecipe</Text>
+            <Text style={styles.title}>Crear cuenta</Text>
 
             <TextInput
                 style={styles.input}
@@ -61,18 +70,27 @@ export default function LoginScreen() {
                 secureTextEntry
             />
 
+            <TextInput
+                style={styles.input}
+                placeholder="Confirmar contraseña"
+                placeholderTextColor="#999999"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+            />
+
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+            <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
                 {loading ? (
                     <ActivityIndicator color="#ffffff" />
                 ) : (
-                    <Text style={styles.buttonText}>Iniciar sesión</Text>
+                    <Text style={styles.buttonText}>Registrarse</Text>
                 )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                <Text style={styles.link}>¿No tienes cuenta? Regístrate</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.link}>¿Ya tienes cuenta? Inicia sesión</Text>
             </TouchableOpacity>
         </View>
     );
