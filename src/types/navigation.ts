@@ -1,9 +1,11 @@
+import { Recipe } from './recipe';
+
 export type RootStackParamList = {
     Login: undefined;
     Register: undefined;
     MainTabs: undefined;
     IngredientsResult: { ingredients: string[] };
-    RecipeDetail: undefined;
+    RecipeDetail: { recipe: Recipe };
 };
 
 export type MainTabParamList = {

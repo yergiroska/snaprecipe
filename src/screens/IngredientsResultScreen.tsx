@@ -6,16 +6,23 @@ import {
     TouchableOpacity,
     StyleSheet,
     FlatList,
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
+import { generateRecipe } from '../services/recipeGenerationService';
 
 type IngredientsResultRouteProp = RouteProp<RootStackParamList, 'IngredientsResult'>;
+type IngredientsResultNavigationProp = NativeStackNavigationProp<RootStackParamList,'IngredientsResult'>;
 
 export default function IngredientsResultScreen() {
     const route = useRoute<IngredientsResultRouteProp>();
+    const navigation = useNavigation<IngredientsResultNavigationProp>();
     const [ingredients, setIngredients] = useState<string[]>(route.params.ingredients);
     const [newIngredient, setNewIngredient] = useState('');
+    const [generating, setGenerating] = useState(false);
 
     const removeIngredient = (index: number) => {
         setIngredients((prev) => prev.filter((_, i) => i !== index));
@@ -26,6 +33,21 @@ export default function IngredientsResultScreen() {
         if (trimmed.length === 0) return;
         setIngredients((prev) => [...prev, trimmed]);
         setNewIngredient('');
+    };
+
+    const handleGenerateRecipe = async () => {
+        setGenerating(true);
+        try {
+            const recipe = await generateRecipe(ingredients);
+            navigation.navigate('RecipeDetail', { recipe });
+        } catch (error) {
+            Alert.alert(
+                'Error al generar la receta',
+                'No se pudo generar la receta. Verifica tu conexión e intenta de nuevo.'
+            );
+        } finally {
+            setGenerating(false);
+        }
     };
 
     return (
@@ -67,11 +89,18 @@ export default function IngredientsResultScreen() {
             </View>
 
             <TouchableOpacity
-                style={[styles.continueButton, ingredients.length === 0 && styles.disabledButton]}
-                disabled={ingredients.length === 0}
-                onPress={() => {}}
+                style={[
+                    styles.continueButton,
+                    (ingredients.length === 0 || generating) && styles.disabledButton,
+                ]}
+                disabled={ingredients.length === 0 || generating}
+                onPress={handleGenerateRecipe}
             >
-                <Text style={styles.continueButtonText}>Generar receta</Text>
+                {generating ? (
+                    <ActivityIndicator color="#ffffff" />
+                ) : (
+                    <Text style={styles.continueButtonText}>Generar receta</Text>
+                )}
             </TouchableOpacity>
         </View>
     );
