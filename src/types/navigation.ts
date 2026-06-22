@@ -2,7 +2,7 @@ export type RootStackParamList = {
     Login: undefined;
     Register: undefined;
     MainTabs: undefined;
-    IngredientsResult: undefined;
+    IngredientsResult: { ingredients: string[] };
     RecipeDetail: undefined;
 };
 

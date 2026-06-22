@@ -5,15 +5,25 @@ import {
     TouchableOpacity,
     StyleSheet,
     Image,
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
+import { detectIngredients } from '../services/groqVisionService';
+import { RootStackParamList } from '../types/navigation';
+
+type HomeNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainTabs'>;
 
 export default function HomeScreen() {
+    const navigation = useNavigation<HomeNavigationProp>();
     const { signOut } = useAuth();
     const [permission, requestPermission] = useCameraPermissions();
     const [photoUri, setPhotoUri] = useState<string | null>(null);
+    const [analyzing, setAnalyzing] = useState(false);
     const cameraRef = useRef<CameraView>(null);
 
     const takePicture = async () => {
@@ -36,7 +46,30 @@ export default function HomeScreen() {
 
     const retake = () => setPhotoUri(null);
 
-    // Caso 1: aún no sabemos si hay permiso (cargando)
+    const useThisPhoto = async () => {
+        if (!photoUri) return;
+        setAnalyzing(true);
+        try {
+            const ingredients = await detectIngredients(photoUri);
+            if (ingredients.length === 0) {
+                Alert.alert(
+                    'Sin ingredientes detectados',
+                    'No se detectaron ingredientes en la foto. Intenta con otra imagen.'
+                );
+                return;
+            }
+            navigation.navigate('IngredientsResult', { ingredients });
+            setPhotoUri(null);
+        } catch (error) {
+            Alert.alert(
+                'Error al analizar la foto',
+                'No se pudo procesar la imagen. Verifica tu conexión e intenta de nuevo.'
+            );
+        } finally {
+            setAnalyzing(false);
+        }
+    };
+
     if (!permission) {
         return (
             <View style={styles.center}>
@@ -45,7 +78,6 @@ export default function HomeScreen() {
         );
     }
 
-    // Caso 2: permiso denegado o no concedido todavía
     if (!permission.granted) {
         return (
             <View style={styles.center}>
@@ -59,24 +91,29 @@ export default function HomeScreen() {
         );
     }
 
-    // Caso 3: ya hay una foto tomada, mostrar preview
     if (photoUri) {
         return (
             <View style={styles.container}>
                 <Image source={{ uri: photoUri }} style={styles.preview} />
-                <View style={styles.row}>
-                    <TouchableOpacity style={styles.secondaryButton} onPress={retake}>
-                        <Text style={styles.buttonText}>Repetir foto</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.button} onPress={() => {}}>
-                        <Text style={styles.buttonText}>Usar esta foto</Text>
-                    </TouchableOpacity>
-                </View>
+                {analyzing ? (
+                    <View style={styles.row}>
+                        <ActivityIndicator size="large" color="#ffffff" />
+                        <Text style={styles.analyzingText}>Analizando ingredientes...</Text>
+                    </View>
+                ) : (
+                    <View style={styles.row}>
+                        <TouchableOpacity style={styles.secondaryButton} onPress={retake}>
+                            <Text style={styles.buttonText}>Repetir foto</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.button} onPress={useThisPhoto}>
+                            <Text style={styles.buttonText}>Usar esta foto</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
             </View>
         );
     }
 
-    // Caso 4: cámara en vivo, lista para capturar
     return (
         <View style={styles.container}>
             <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
@@ -161,5 +198,10 @@ const styles = StyleSheet.create({
     logoutText: {
         color: '#ffffff',
         fontSize: 12,
+    },
+    analyzingText: {
+        color: '#ffffff',
+        marginLeft: 12,
+        fontSize: 16,
     },
 });
