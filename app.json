@@ -25,6 +25,20 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "SnapRecipe necesita acceso a tu cámara para fotografiar los ingredientes."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SnapRecipe necesita acceso a tus fotos para seleccionar imágenes de ingredientes."
+        }
+      ]
+    ]
   }
 }
