@@ -1,16 +1,70 @@
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useState } from 'react';
+import {
+    ScrollView,
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    Alert,
+    ActivityIndicator,
+} from 'react-native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types/navigation';
+import { useAuth } from '../context/AuthContext';
+import { saveRecipe } from '../services/recipesService';
 
 type RecipeDetailRouteProp = RouteProp<RootStackParamList, 'RecipeDetail'>;
 
 export default function RecipeDetailScreen() {
     const route = useRoute<RecipeDetailRouteProp>();
+    const navigation = useNavigation();
     const { recipe } = route.params;
+    const { user } = useAuth();
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+
+    const handleSave = async () => {
+        if (!user) return;
+        setSaving(true);
+        try {
+            await saveRecipe(user.uid, recipe);
+            setSaved(true);
+        } catch (error) {
+            console.log('Error al guardar:', error);
+            Alert.alert('Error al guardar', String(error));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const goToSavedRecipes = () => {
+        (navigation as any).navigate('MainTabs', { screen: 'SavedRecipes' });
+    };
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Text style={styles.title}>{recipe.title}</Text>
+            <View style={styles.headerRow}>
+                <Text style={styles.title}>{recipe.title}</Text>
+                <View style={styles.buttonsColumn}>
+                    <TouchableOpacity
+                        style={[styles.saveButton, saved && styles.savedButton]}
+                        onPress={handleSave}
+                        disabled={saving || saved}
+                    >
+                        {saving ? (
+                            <ActivityIndicator color="#ffffff" size="small" />
+                        ) : (
+                            <Text style={styles.saveButtonText}>{saved ? '★ Guardada' : '☆ Guardar'}</Text>
+                        )}
+                    </TouchableOpacity>
+
+                    {saved && (
+                        <TouchableOpacity style={styles.viewSavedButton} onPress={goToSavedRecipes}>
+                            <Text style={styles.viewSavedButtonText}>Ver guardadas →</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
 
             <View style={styles.metaRow}>
                 <View style={styles.metaBadge}>
@@ -47,10 +101,47 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingBottom: 40,
     },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 12,
+    },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 12,
+        flex: 1,
+        marginRight: 12,
+    },
+    buttonsColumn: {
+        alignItems: 'flex-end',
+    },
+    saveButton: {
+        backgroundColor: '#2e7d32',
+        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        minWidth: 90,
+        alignItems: 'center',
+    },
+    savedButton: {
+        backgroundColor: '#aaaaaa',
+    },
+    saveButtonText: {
+        color: '#ffffff',
+        fontWeight: 'bold',
+        fontSize: 13,
+    },
+    viewSavedButton: {
+        marginTop: 8,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+    },
+    viewSavedButtonText: {
+        color: '#2e7d32',
+        fontWeight: '600',
+        fontSize: 12,
+        textDecorationLine: 'underline',
     },
     metaRow: {
         flexDirection: 'row',
